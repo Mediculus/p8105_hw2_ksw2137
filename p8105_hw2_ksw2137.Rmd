@@ -50,8 +50,7 @@ precip2017_data <-
              range = "A2:B14") %>%                                  # Specifies range of cells to be read
   janitor::clean_names() %>%                                        # turns column names to lowercases
   mutate(year = "2017") %>%                                         # Adds year column
-  select(year, everything()) %>%                                    # Re-arrange so year is 1st column
-  drop_na(total)                                                    # drops any blank cells in "total" column
+  select(year, everything())                                        # Re-arrange so year is 1st column
   
 
 # Reads the 2018 precipitation data    
@@ -62,13 +61,13 @@ precip2018_data <-
   janitor::clean_names() %>%                                        # turns column names to lowercases
   mutate(year = "2018") %>%                                         # Adds year column
   select(year, everything()) %>%                                    # Re-arrange so year is 1st column 
-  drop_na(total)                                                    # drops any blank cells in "total" column
+  drop_na(total)                                                    # drops blank cells in "total" column
 
 
 # New dataframe that merged precip2017 and precip2018 by year, then month, then "total". 
 merged_precip20178_data <- 
   full_join(precip2017_data, precip2018_data, by = c("year", "month", "total")) %>% 
-  mutate(month = str_to_lower(month.abb[month])) %>%               # changes month from "1" to "january" and so on
+  mutate(month = str_to_lower(month.name[month])) %>%               # changes month from "1" to "january" and so on
   rename(monthly_precip = total)                                    # renames the total column to monthly_precip
 
 ```
@@ -78,7 +77,7 @@ Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website
 The precipitation data was less interesting; there were a total of `r nrow(merged_precip20178_data)` observations corresponding to each month (Jan 2017 - Jul 2018) and its precipitate in inches, which is under the `monthly_precip` column. The `year` identifier was added and merged as it was not included in the original. Total measured precipitation for 2018 was `r sum(pull(precip2018_data, total))` inches, taking into account that the range of 2018 data was from Jan 2018 - Jul 2018.
 
 # Problem 2
-Trying to make a merged data between polls, unemployment, and Scottish National Party (snp) data obtained from FiveThirtyEight, a website that focuses on graphs.
+Making a merged data between polls, unemployment, and Scottish National Party (snp) data obtained from FiveThirtyEight, a website that focuses on graphs.
 
 ```{r import_538data}
 
@@ -93,7 +92,6 @@ pols_month_data <-
          prez = factor(prez, labels = c("dem", "gop", "gop"))) %>% 
   select(year, month, prez, everything(), -date, -prez_gop, -prez_dem)
   
-
 
 # Loads snp data, separate date into 
 snp_data <- 
@@ -111,17 +109,16 @@ unemployment_data <-
   pivot_longer(
     jan:dec,
     names_to = "month",
-    values_to = "unemp_count"
-  )
+    values_to = "unemp_count")
 
 
+merged_538_data <-
+  left_join(pols_month_data, snp_data, by = c("year", "month")) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  left_join(unemployment_data, by = c("year", "month"))
 
-  
 ```
 
-
-
-Join the datasets by merging snp into pols, and merging unemployment into the result.
 
 Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables).
 
