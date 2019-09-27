@@ -72,7 +72,7 @@ merged_precip20178_data <-
 
 ```
 
-Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website and while it's not necessary to include the It contains a total of `r ncol(trash_wheel_data)` variables containing `r nrow(trash_wheel_data)` observations each. Examples of particularly key variables included are `volume_cubic_yards` (trash volume in cubic yards) and unique types of trash such as `cigarette_butts` or `plastic_bottles`. Interestingly, there were also `sports_balls` included, which has a total median of `r median(pull(trash_wheel_data, sports_balls))` balls per dumpster. 
+Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website and while it's not necessary to include the It contains a total of `r ncol(trash_wheel_data)` variables (including dumpster #) containing `r nrow(trash_wheel_data)` observations each. Examples of particularly key variables included are `volume_cubic_yards` (trash volume in cubic yards) and unique types of trash such as `cigarette_butts` or `plastic_bottles`. Interestingly, there were also `sports_balls` included, which has a total median of `r median(pull(trash_wheel_data, sports_balls))` balls per dumpster. 
 
 The precipitation data was less interesting; there were a total of `r nrow(merged_precip20178_data)` observations corresponding to each month (Jan 2017 - Jul 2018) and its precipitate in inches, which is under the `monthly_precip` column. The `year` identifier was added and merged as it was not included in the original. Total measured precipitation for 2018 was `r sum(pull(precip2018_data, total))` inches, taking into account that the range of 2018 data was from Jan 2018 - Jul 2018.
 
@@ -81,7 +81,7 @@ Making a merged data between polls, unemployment, and Scottish National Party (s
 
 ```{r import_538data}
 
-# Importing polls data and splitting the date column into year/month/date. Also changed month from numeric to 
+# Importing polls data, splot the y/m/d date into individual columns. Also changed month from numeric to 
 # three-letter form
 pols_month_data <- 
   read_csv("./data/538/pols-month.csv") %>% 
@@ -93,16 +93,17 @@ pols_month_data <-
   select(year, month, prez, everything(), -date, -prez_gop, -prez_dem)
   
 
-# Loads snp data, separate date into 
+# Loads snp data, separate m/d/y into individual columns
 snp_data <- 
   read_csv("./data/538/snp.csv") %>% 
   janitor::clean_names() %>% 
   separate(col = date, into = c("month", "date", "year"), "/") %>% 
   select(year, month, close) %>% 
-  mutate(month = str_to_lower(month.abb[as.numeric(month)]))
+  mutate(month = str_to_lower(month.abb[as.numeric(month)])) %>% 
+  arrange(year)
 
 
-# Importing unemployment data, turned from wide to long format.
+# Importing unemployment data and then turn it from wide to long format.
 unemployment_data <- 
   read_csv("./data/538/unemployment.csv") %>% 
   janitor::clean_names() %>% 
@@ -112,10 +113,12 @@ unemployment_data <-
     values_to = "unemp_count")
 
 
+# Merging the above dataframes by using pols_month_data as the reference.
 merged_538_data <-
   left_join(pols_month_data, snp_data, by = c("year", "month")) %>% 
   mutate(year = as.numeric(year)) %>% 
-  left_join(unemployment_data, by = c("year", "month"))
+  left_join(unemployment_data, by = c("year", "month")) %>% 
+  rename(snp_close = close)
 
 ```
 
@@ -124,12 +127,20 @@ Write a short paragraph about these datasets. Explain briefly what each dataset 
 
 
 # Problem 3
-We are using data from NYC Open on baby names' popularity and will create a table that shows "popularity ranking". 
+We are using data from NYC Open on baby names' popularity and will create a table that shows "popularity ranking". Issues with the data: 
+
+* Categorization naming changed over time:
+  * ASIAN AND PACIFIC ISLANDER -> ASIAN AND PACI
+  * BLACK NON HISPANIC -> BLACK NON HISP
+  * WHITE NON HISPANIC -> WHITE NON HISP
+* Case structure of the names changed between 2012 - 2013 from ALL UPPER CASE to 
+and that there were duplicated rows.
 
 ```{r baby_data}
 
 baby_names_data <-
-  read_csv("./data/baby_names/Popular_Baby_Names.csv") 
+  read_csv("./data/baby_names/Popular_Baby_Names.csv") %>% 
+  janitor::clean_names()
   
 
 ```
