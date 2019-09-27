@@ -12,10 +12,10 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE
 # Introduction
 R Markdown document for P8105 homework 2. Code chunk below shows that we are loading the required packages in order to manipulate the imported data.
 
-```{r package_load, message = FALSE, warning = FALSE}
+```{r package_load}
 
 # Loads the necessary packages
-Packages <- c("tidyverse", "readxl")
+Packages <- c("tidyverse", "dplyr", "readxl")
 invisible(lapply(Packages, library, character.only = TRUE))
 
 ```
@@ -24,7 +24,7 @@ invisible(lapply(Packages, library, character.only = TRUE))
 # Problem 1 - Data Import for Mr. Trash Wheel, 2017 Precipitation, & 2018 Precipitation and Data Clean-up
 We are loading datasets from the Healthy Harbor Water Wheel dataset, particularly from the sheets: "Mr. Trash Wheel", "2018 Precipitation", and "2017 Precipitation". While the Mr. Trash Wheel dataset is generally "tidy", we will modify these further to make it easier to work with the data. Dataset for precipitation from 2017 and 2018 were on separate sheets and needed to be merged since we would like a combined dataset. 
 
-```{r import_trash_wheel}
+```{r import_trash_precip_dataset}
 
 # Import excel sheet and piping to clean data for Mr. Trash Wheel
 trash_wheel_data <- 
@@ -39,6 +39,7 @@ trash_wheel_data <-
     sports_balls = as.integer(sports_balls),                        # Converts type from double to integers
     month = str_to_lower(month)) %>%                                # Makes months to have lowercases
   select(dumpster, year, month, everything())                       # Re-arranges the column to be "tidier"
+
 
 # separates sportsball column to be used somewhere else
 col_sportball <- pull(trash_wheel_data, sports_balls)
@@ -57,7 +58,6 @@ precip2017_data <-
   drop_na(total)                                                    # drops any blank cells in "total" column
   
 
-
 # Reads the 2018 precipitation data    
 precip2018_data <- 
   read_excel("./data/trash_wheel/HealthyHarborWaterWheelTotals2018-7-28.xlsx", 
@@ -74,6 +74,7 @@ merged_precip20178_data <- full_join(precip2017_data, precip2018_data, by = c("y
   mutate(month = str_to_lower(month.name[month])) %>%               # changes month from "1" to "january" and so on
   rename(monthly_precip = total)                                    # renames the total column to monthly_precip
 
+
 # Pulls the monthly precipitate column for other uses
 total_precip2018 <- sum(pull(precip2018_data, total))
 
@@ -84,15 +85,33 @@ Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website
 The precipitation data was less interesting; there were a total of `r nrow(merged_precip20178_data)` observations corresponding to each month and its precipitate, which is under the `monthly_precip` column. The `year` identifier was added and merged as it was not included in the original (already separated by sheets). Unfortunately, the 2018 precipitation data was only up to July, thus the `r nrow(precip2018_data)` observations; consequently, total measured precipitation for 2018 was `r total_precip2018`.
 
 # Problem 2
-Trying to make a merged data between polls, unemployment, and snp?? data obtained from FiveThirtyEight, a website that focuses on graphs.
+Trying to make a merged data between polls, unemployment, and Scottish National Party (snp) data obtained from FiveThirtyEight, a website that focuses on graphs.
+
 ```{r import_538data}
 
+# Importing polls data and splitting the date column into year/month/date. Also changed month from numeric to 
+# three-letter form
 pols_month_data <- 
   read_csv("./data/538/pols-month.csv") %>% 
   janitor::clean_names() %>% 
-  separate(col = mon, into = c("year", "month", "date"), "-") #%>% 
-  #mutate(month = str_to_lower(month.name[month]))
+  separate(col = mon, into = c("year", "month", "date"), "-") %>% 
+  mutate(month = str_to_lower(month.abb[as.numeric(month)]),
+         prez = prez_gop - prez_dem,
+         prez = factor(prez, labels = c("dem", "gop", "gop"))) %>% 
+  select(year, month, prez, everything(), -date, -prez_gop, -prez_dem)
+  
 
+
+# Loads snp data, separate date into 
+snp_data <- 
+  read_csv("./data/538/snp.csv") %>% 
+  janitor::clean_names() %>% 
+  separate(col = date, into = c("month", "date", "year"), "/") %>% 
+  select(year, month, close) %>% 
+  mutate(month = str_to_lower(month.abb[as.numeric(month)]))
+
+
+# Importing unemployment data, turned from wide to long format.
 unemployment_data <- read_csv("./data/538/unemployment.csv") %>% 
   janitor::clean_names() %>% 
   pivot_longer(
@@ -101,29 +120,28 @@ unemployment_data <- read_csv("./data/538/unemployment.csv") %>%
     values_to = "unemp_count"
   )
 
-snp_data <- 
-  read_csv("./data/538/snp.csv") %>% 
-  janitor::clean_names()
-  
 
+
+  
 ```
 
 
-create a president variable taking values gop and dem, and remove  prez_dem and prez_gop; and remove the day variable.
-
-Second, clean the data in snp.csv using a similar process to the above. For consistency across datasets, arrange according to year and month, and organize so that year and month are the leading columns.
-
-Third, tidy the unemployment data so that it can be merged with the previous datasets. This process will involve switching from “wide” to “long” format; ensuring that key variables have the same name; and ensuring that key variables take the same values.
 
 Join the datasets by merging snp into pols, and merging unemployment into the result.
 
 Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables).
 
-Note: we could have used a date variable as a key instead of creating year and month keys; doing so would help with some kinds of plotting, and be a more accurate representation of the data. Date formats are tricky, though. For more information check out the lubridate package in the tidyverse.
 
 # Problem 3
+We are using data from NYC Open on baby names' popularity and will create a table that shows "popularity ranking". 
 
-This problem uses data from NYC Open data on the popularity of baby names, and can be downloaded here.
+```{r baby_data}
+
+baby_names_data <-
+  read_csv("./data/baby_names/Popular_Baby_Names.csv") 
+  
+
+```
 
 Load and tidy the data. Note that, although these data may seem fairly well formatted initially, the names of a categorical predictor and the case structure of string variables changed over time; you’ll need to address this in your data cleaning. Also, some rows seem duplicated, and these will need to be removed (hint: google something like “dplyr remove duplicate rows” to get started).
 
