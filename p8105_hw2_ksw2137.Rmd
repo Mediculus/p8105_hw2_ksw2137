@@ -29,9 +29,9 @@ We are loading datasets from the Healthy Harbor Water Wheel dataset, particularl
 # Import excel sheet and piping to clean data for Mr. Trash Wheel
 trash_wheel_data <- 
   read_excel("./data/trash_wheel/HealthyHarborWaterWheelTotals2018-7-28.xlsx",
-             sheet = "Mr. Trash Wheel") %>%                         # Specifies which sheet to read
+             sheet = "Mr. Trash Wheel",                             # Specifies which sheet to read
+             range = "A2:N336") %>%                                 # Specifies the cells imported
   janitor::clean_names() %>%                                        # renames column titles as x_y and lowercases
-  select(-x15) %>%                                                  # removes the "x15"(comments)
   drop_na(year) %>%                                                 # drops any rows containing NA in "year" column
   mutate(
     date = format(date, format = "%d"),                             # Changes the date format from %y%m%d to %d
@@ -39,10 +39,6 @@ trash_wheel_data <-
     sports_balls = as.integer(sports_balls),                        # Converts type from double to integers
     month = str_to_lower(month)) %>%                                # Makes months to have lowercases
   select(dumpster, year, month, everything())                       # Re-arranges the column to be "tidier"
-
-
-# separates sportsball column to be used somewhere else
-col_sportball <- pull(trash_wheel_data, sports_balls)
 
 
 
@@ -70,19 +66,16 @@ precip2018_data <-
 
 
 # New dataframe that merged precip2017 and precip2018 by year, then month, then "total". 
-merged_precip20178_data <- full_join(precip2017_data, precip2018_data, by = c("year", "month", "total")) %>% 
-  mutate(month = str_to_lower(month.name[month])) %>%               # changes month from "1" to "january" and so on
+merged_precip20178_data <- 
+  full_join(precip2017_data, precip2018_data, by = c("year", "month", "total")) %>% 
+  mutate(month = str_to_lower(month.abb[month])) %>%               # changes month from "1" to "january" and so on
   rename(monthly_precip = total)                                    # renames the total column to monthly_precip
-
-
-# Pulls the monthly precipitate column for other uses
-total_precip2018 <- sum(pull(precip2018_data, total))
 
 ```
 
-Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website and contains a total of `r ncol(trash_wheel_data)` variables containing `r nrow(trash_wheel_data)` observations each. Examples of particularly key variables included are `volume_cubic_yards` (trash volume in cubic yards) and unique types of trash such as `cigarette_butts` or `plastic_bottles`. Interestingly, there were also `sports_balls` included, which has a total median of `r median(col_sportball)` balls per dumpster. 
+Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website and while it's not necessary to include the It contains a total of `r ncol(trash_wheel_data)` variables containing `r nrow(trash_wheel_data)` observations each. Examples of particularly key variables included are `volume_cubic_yards` (trash volume in cubic yards) and unique types of trash such as `cigarette_butts` or `plastic_bottles`. Interestingly, there were also `sports_balls` included, which has a total median of `r median(pull(trash_wheel_data, sports_balls))` balls per dumpster. 
 
-The precipitation data was less interesting; there were a total of `r nrow(merged_precip20178_data)` observations corresponding to each month and its precipitate, which is under the `monthly_precip` column. The `year` identifier was added and merged as it was not included in the original (already separated by sheets). Unfortunately, the 2018 precipitation data was only up to July, thus the `r nrow(precip2018_data)` observations; consequently, total measured precipitation for 2018 was `r total_precip2018`.
+The precipitation data was less interesting; there were a total of `r nrow(merged_precip20178_data)` observations corresponding to each month (Jan 2017 - Jul 2018) and its precipitate in inches, which is under the `monthly_precip` column. The `year` identifier was added and merged as it was not included in the original. Total measured precipitation for 2018 was `r sum(pull(precip2018_data, total))` inches, taking into account that the range of 2018 data was from Jan 2018 - Jul 2018.
 
 # Problem 2
 Trying to make a merged data between polls, unemployment, and Scottish National Party (snp) data obtained from FiveThirtyEight, a website that focuses on graphs.
@@ -112,7 +105,8 @@ snp_data <-
 
 
 # Importing unemployment data, turned from wide to long format.
-unemployment_data <- read_csv("./data/538/unemployment.csv") %>% 
+unemployment_data <- 
+  read_csv("./data/538/unemployment.csv") %>% 
   janitor::clean_names() %>% 
   pivot_longer(
     jan:dec,
