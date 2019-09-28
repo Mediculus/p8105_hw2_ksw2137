@@ -154,7 +154,7 @@ baby_names_data <-
 
 olivia_fem_rank_annual <- baby_names_data %>% 
   filter(childs_first_name == "olivia", gender == "female") %>% 
-  #select(-gender, -childs_first_name, -count) %>% 
+  select(-gender, -childs_first_name, -count) %>% 
   pivot_wider(names_from = year_of_birth,
               values_from = rank) %>% 
   select(ethnicity, "2011", "2012", "2013", "2014", "2015", "2016")
@@ -162,14 +162,25 @@ olivia_fem_rank_annual <- baby_names_data %>%
 
 male_rank1_annual <- baby_names_data %>% 
   filter(rank == 1, gender == "male") %>% 
-  #select(-gender, -rank, -count) %>% 
+  select(-gender, -rank, -count) %>% 
   pivot_wider(names_from = year_of_birth,
               values_from = childs_first_name) %>% 
   select(ethnicity, "2011", "2012", "2013", "2014", "2015", "2016")
 
 
 top100_whitemale_2016 <- baby_names_data %>% 
-  filter(year_of_birth == 2016, gender == "male", ethnicity == "white non hispanic") #%>% 
+  filter(year_of_birth == 2016, gender == "male", ethnicity == "white non hispanic") %>%
+  ggplot(aes(x = rank, y = count, color = childs_first_name)) +
+  geom_point(aes(size = count), alpha = 0.3) +
+  theme(legend.position = "none") +
+  labs(title = "Top 100 Real Name Counts",
+       subtitle = "for White, non-Hispanic Males Born in 2016",
+       x = "Ranking from 1-100",
+       y = "Real Counts") +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        plot.subtitle = element_text(hjust = 0.5, size = 8))
+
+top100_whitemale_2016
   
   
 ```
