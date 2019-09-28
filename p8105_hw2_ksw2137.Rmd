@@ -66,9 +66,10 @@ precip2018_data <-
 
 # New dataframe that merged precip2017 and precip2018 by year, then month, then "total". 
 merged_precip20178_data <- 
-  full_join(precip2017_data, precip2018_data, by = c("year", "month", "total")) %>% 
-  mutate(month = str_to_lower(month.name[month])) %>%               # changes month from "1" to "january" and so on
-  rename(monthly_precip = total)                                    # renames the total column to monthly_precip
+  full_join(precip2017_data, precip2018_data,             # Uses full join to
+            by = c("year", "month", "total")) %>% 
+  mutate(month = str_to_lower(month.name[month])) %>%     # changes month from "1" to "january" and so on
+  rename(monthly_precip = total)                          # renames the total column to monthly_precip
 
 ```
 
@@ -76,49 +77,50 @@ Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website
 
 The precipitation data was less interesting; there were a total of `r nrow(merged_precip20178_data)` observations corresponding to each month (Jan 2017 - Jul 2018) and its precipitate in inches, which is under the `monthly_precip` column. The `year` identifier was added and merged as it was not included in the original. Total measured precipitation for 2018 was `r sum(pull(precip2018_data, total))` inches, taking into account that the range of 2018 data was from Jan 2018 - Jul 2018.
 
-# Problem 2
-Making a merged data between polls, unemployment, and S&P 500 Index data obtained from FiveThirtyEight, a website that focuses on graphs.
+# Problem 2 - S&P 500 Index, Unemployment, and Presidency Polls Data
+Making a merged data between polls, unemployment, and S&P 500 Index data obtained from FiveThirtyEight, a website that focuses on graphs. Since structure is slightly different, we have to reorganize the table and use the year & month as the identifier during merging. 
 
 ```{r import_538data}
 
 # Importing polls data, splot the y/m/d date into individual columns. Also changed month from numeric to 
-# three-letter form
+# abbreviated form
 pols_month_data <- 
-  read_csv("./data/538/pols-month.csv") %>% 
-  janitor::clean_names() %>% 
-  separate(col = mon, into = c("year", "month", "date"), "-") %>% 
-  mutate(month = str_to_lower(month.abb[as.numeric(month)]),
-         prez = prez_gop - prez_dem,
-         prez = factor(prez, labels = c("dem", "gop", "gop"))) %>% 
-  select(year, month, prez, everything(), -date, -prez_gop, -prez_dem)
+  read_csv("./data/538/pols-month.csv") %>%                            # Reads the file
+  janitor::clean_names() %>%                                           # Cleans the column names
+  separate(col = mon, into = c("year", "month", "date"), "-") %>%      # Separates y/m/d column into its components
+  mutate(month = str_to_lower(month.abb[as.numeric(month)]),           # Change month from "1" to "jan", etc
+         prez = prez_gop - prez_dem,                                   # Added column for "presidency" by math (x-y)
+         prez = factor(prez, labels = c("dem", "gop", "gop"))) %>%     # Change new column to factor and relabeled
+  select(year, month, prez, everything(), -date, -prez_gop, -prez_dem) # Re-arrange columns and remove unwanteds
   
 
-# Loads snp data, separate m/d/y into individual columns
+# Loads S&P 500 data, separate m/d/y into individual columns and change month to abbreviated form.
 snp_data <- 
-  read_csv("./data/538/snp.csv") %>% 
-  janitor::clean_names() %>% 
-  separate(col = date, into = c("month", "date", "year"), "/") %>%
-  mutate(month = as.numeric(month)) %>% 
-  select(year, month, close) %>% 
-  arrange(year, month) %>% 
-  mutate(month = str_to_lower(month.abb[month]))
+  read_csv("./data/538/snp.csv") %>%                                # Reads the file
+  janitor::clean_names() %>%                                        # Cleans the column names
+  separate(col = date, into = c("month", "date", "year"), "/") %>%  # Separates y/m/d column into its components
+  mutate(month = as.numeric(month)) %>%                             # Turns the vector into numeric
+  select(year, month, close) %>%                                    # Re-arrangement of columns
+  arrange(year, month) %>%                                          # Turn into ascending order (to match other df)
+  mutate(month = str_to_lower(month.abb[month]))                    # Change month from "1" to "jan", etc
+
 
 # Importing unemployment data and then turn it from wide to long format.
 unemployment_data <- 
-  read_csv("./data/538/unemployment.csv") %>% 
-  janitor::clean_names() %>% 
+  read_csv("./data/538/unemployment.csv") %>%                       # Reads the file
+  janitor::clean_names() %>%                                        # Cleans the column names
   pivot_longer(
-    jan:dec,
-    names_to = "month",
-    values_to = "unemp_count")
+    jan:dec,                                                        # Turns into longform by "merging" month columns
+    names_to = "month",                                             # labels "month" to new column
+    values_to = "unemp_count")                                      # labels for column containing values
 
 
 # Merging the above dataframes by using pols_month_data as the reference.
 merged_538_data <-
-  left_join(pols_month_data, snp_data, by = c("year", "month")) %>% 
-  mutate(year = as.numeric(year)) %>% 
-  left_join(unemployment_data, by = c("year", "month")) %>% 
-  rename(snp_close = close)
+  left_join(pols_month_data, snp_data, by = c("year", "month")) %>% # merged snp into pols_month data
+  mutate(year = as.numeric(year)) %>%                               # turns year into numeric vector from char
+  left_join(unemployment_data, by = c("year", "month")) %>%         # merged unemp to the pols+S&P data
+  rename(snp_close = close)                                         # renames the close column to specify for S&P
 
 ```
 
@@ -126,10 +128,11 @@ merged_538_data <-
 Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables).
 
 
-# Problem 3
+# Problem 3 - Baby Names Data Processing
 We are using data from NYC Open on baby names' popularity and will create a table that shows "popularity ranking".
 
-Issues with the data: 
+## Importing baby data & cleaning up
+Upon skimming the original `.csv` dataset, various issues with the syntax of the data. These issues, while not, "critical", needs to be cleaned up so we could work easily with the data. Issues are:
 
 * Inconsistent categorization naming:
   * ASIAN AND PACIFIC ISLANDER vs. ASIAN AND PACI
@@ -138,21 +141,41 @@ Issues with the data:
 * Case structure of the names changed between 2012 - 2013 from "UPPERCASE" to "Name"
 * Many duplicated rows were spotted
 
-```{r baby_data}
+```{r baby_data_cleanup}
 
+# Cleaning up the baby_names dataset
 baby_names_data <-
   read_csv("./data/baby_names/Popular_Baby_Names.csv") %>% 
   janitor::clean_names() %>% 
-  mutate(childs_first_name = str_to_lower(childs_first_name),
+  mutate(childs_first_name = str_to_lower(childs_first_name),          # Changes specified columns to all lowercase
          ethnicity = str_to_lower(ethnicity),
          gender = str_to_lower(gender)) %>% 
   distinct(year_of_birth, gender, ethnicity, childs_first_name, count, rank, .keep_all = TRUE) %>%
-  mutate(ethnicity = str_replace(ethnicity, "asian and paci(?!fic islander)", "asian and pacific islander"),
-         ethnicity = str_replace(ethnicity, "black non hisp(?!anic)", "black non hispanic"),
-         ethnicity = str_replace(ethnicity, "white non hisp(?!anic)", "white non hispanic"))
+  mutate(
+    ethnicity = str_replace(ethnicity, 
+                            "asian and paci(?!fic islander)",
+                            "asian and pacific islander"),
+    ethnicity = str_replace(ethnicity,
+                            "black non hisp(?!anic)",
+                            "black non hispanic"),
+    ethnicity = str_replace(ethnicity,
+                            "white non hisp(?!anic)",
+                            "white non hispanic"))
                                   
+```
 
-olivia_fem_rank_annual <- baby_names_data %>% 
+## Obtaining useful information from cleaned baby dataset
+Now that the dataset is cleaned and tidied, we will pull 3 data subsets: 
+
+* Ranking changes for Olivia (female) over time by ethnicity
+* Names for the male's 1st rank each year by ethnicity
+* Graph of the counts from each rank of white non-hispanic males' top 100 born in 2016
+
+```{r baby_data_processing}
+
+
+olivia_fem_rank_annual <- 
+  baby_names_data %>% 
   filter(childs_first_name == "olivia", gender == "female") %>% 
   select(-gender, -childs_first_name, -count) %>% 
   pivot_wider(names_from = year_of_birth,
@@ -160,7 +183,8 @@ olivia_fem_rank_annual <- baby_names_data %>%
   select(ethnicity, "2011", "2012", "2013", "2014", "2015", "2016")
 
 
-male_rank1_annual <- baby_names_data %>% 
+male_rank1_annual <- 
+  baby_names_data %>% 
   filter(rank == 1, gender == "male") %>% 
   select(-gender, -rank, -count) %>% 
   pivot_wider(names_from = year_of_birth,
@@ -168,8 +192,11 @@ male_rank1_annual <- baby_names_data %>%
   select(ethnicity, "2011", "2012", "2013", "2014", "2015", "2016")
 
 
-top100_whitemale_2016 <- baby_names_data %>% 
-  filter(year_of_birth == 2016, gender == "male", ethnicity == "white non hispanic") %>%
+top100_whitemale_2016 <- 
+  baby_names_data %>% 
+  filter(year_of_birth == 2016, 
+         gender == "male", 
+         ethnicity == "white non hispanic") %>%
   ggplot(aes(x = rank, y = count, color = childs_first_name)) +
   geom_point(aes(size = count), alpha = 0.3) +
   theme(legend.position = "none") +
