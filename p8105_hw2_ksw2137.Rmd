@@ -9,6 +9,9 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE)
 ```
 
+
+
+
 # Introduction
 R Markdown document for P8105 homework 2. Code chunk below shows that we are loading the required packages in order to manipulate the imported data.
 
@@ -21,24 +24,26 @@ invisible(lapply(Packages, library, character.only = TRUE))
 ```
 
 
+
+
 # Problem 1 - Data Import for Mr. Trash Wheel, 2017 Precipitation, & 2018 Precipitation and Data Clean-up
 We are loading datasets from the Healthy Harbor Water Wheel dataset, particularly from the sheets: "Mr. Trash Wheel", "2018 Precipitation", and "2017 Precipitation". While the Mr. Trash Wheel dataset is generally "tidy", we will modify these further to make it easier to work with the data. Dataset for precipitation from 2017 and 2018 were on separate sheets and needed to be merged since we would like a combined dataset. 
 
-```{r import_trash_precip_dataset}
+```{r trash_precip_dataset}
 
 # Import excel sheet and piping to clean data for Mr. Trash Wheel
 trash_wheel_data <- 
   read_excel("./data/trash_wheel/HealthyHarborWaterWheelTotals2018-7-28.xlsx",
-             sheet = "Mr. Trash Wheel",                             # Specifies which sheet to read
-             range = "A2:N336") %>%                                 # Specifies the cells imported
-  janitor::clean_names() %>%                                        # renames column titles as x_y and lowercases
-  drop_na(year) %>%                                                 # drops any rows containing NA in "year" column
+             sheet = "Mr. Trash Wheel",                       # Specifies which sheet to read
+             range = "A2:N336") %>%                           # Specifies the cells imported
+  janitor::clean_names() %>%                                  # renames column titles as x_y and lowercases
+  drop_na(year) %>%                                           # drops any rows containing NA in "year" column
   mutate(
-    date = format(date, format = "%d"),                             # Changes the date format from %y%m%d to %d
-    sports_balls = round(sports_balls, 0),                          # Rounds the numbers in sports_balls to integers
-    sports_balls = as.integer(sports_balls),                        # Converts type from double to integers
-    month = str_to_lower(month)) %>%                                # Makes months to have lowercases
-  select(dumpster, year, month, everything())                       # Re-arranges the column to be "tidier"
+    date = format(date, format = "%d"),                       # Changes the date format from %y%m%d to %d
+    sports_balls = round(sports_balls, 0),                    # Rounds the numbers in sports_balls to integers
+    sports_balls = as.integer(sports_balls),                  # Converts type from double to integers
+    month = str_to_lower(month)) %>%                          # Makes months to have lowercases
+  select(dumpster, year, month, everything())                 # Re-arranges the column to be "tidier"
 
 
 
@@ -46,86 +51,108 @@ trash_wheel_data <-
 # Reads the 2017 precipitation data
 precip2017_data <- 
   read_excel("./data/trash_wheel/HealthyHarborWaterWheelTotals2018-7-28.xlsx", 
-             sheet = "2017 Precipitation",                          # Specifies the sheet
-             range = "A2:B14") %>%                                  # Specifies range of cells to be read
-  janitor::clean_names() %>%                                        # turns column names to lowercases
-  mutate(year = "2017") %>%                                         # Adds year column
-  select(year, everything())                                        # Re-arrange so year is 1st column
+             sheet = "2017 Precipitation",                    # Specifies the sheet
+             range = "A2:B14") %>%                            # Specifies range of cells to be read
+  janitor::clean_names() %>%                                  # turns column names to lowercases
+  mutate(year = "2017") %>%                                   # Adds year column
+  select(year, everything())                                  # Re-arrange so year is 1st column
   
 
 # Reads the 2018 precipitation data    
 precip2018_data <- 
   read_excel("./data/trash_wheel/HealthyHarborWaterWheelTotals2018-7-28.xlsx", 
-             sheet = "2018 Precipitation",                          # Specifies the sheet
-             range = "A2:B14") %>%                                  # Specifies range of cells to be read
-  janitor::clean_names() %>%                                        # turns column names to lowercases
-  mutate(year = "2018") %>%                                         # Adds year column
-  select(year, everything()) %>%                                    # Re-arrange so year is 1st column 
-  drop_na(total)                                                    # drops blank cells in "total" column
+             sheet = "2018 Precipitation",                    # Specifies the sheet
+             range = "A2:B14") %>%                            # Specifies range of cells to be read
+  janitor::clean_names() %>%                                  # turns column names to lowercases
+  mutate(year = "2018") %>%                                   # Adds year column
+  select(year, everything()) %>%                              # Re-arrange so year is 1st column 
+  drop_na(total)                                              # drops blank cells in "total" column
 
 
 # New dataframe that merged precip2017 and precip2018 by year, then month, then "total". 
-merged_precip20178_data <- 
-  full_join(precip2017_data, precip2018_data,             # Uses full join to
+merged_precip1718_data <- 
+  full_join(precip2017_data, precip2018_data,             # Uses full join using 3 parameters in sequence
             by = c("year", "month", "total")) %>% 
   mutate(month = str_to_lower(month.name[month])) %>%     # changes month from "1" to "january" and so on
   rename(monthly_precip = total)                          # renames the total column to monthly_precip
 
 ```
 
-Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website and while it's not necessary to include the It contains a total of `r ncol(trash_wheel_data)` variables (including dumpster #) containing `r nrow(trash_wheel_data)` observations each. Examples of particularly key variables included are `volume_cubic_yards` (trash volume in cubic yards) and unique types of trash such as `cigarette_butts` or `plastic_bottles`. Interestingly, there were also `sports_balls` included, which has a total median of `r median(pull(trash_wheel_data, sports_balls))` balls per dumpster. 
+Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website and while it's not necessary to include the It contains a total of `r ncol(trash_wheel_data)` variables (categories, including dumpster #) containing `r nrow(trash_wheel_data)` observations each. Identifying variables are `dumpster`, `year`, `month`, and `date`. We also have key variables that lists the total amount of variables per dumpster collected at date `x`. Examples of particularly key variables included are:
+
+* The trash `weight` (in tons)
+* Trash `volume_cubic_yards` (in cubic yards) 
+* Amount of `cigarette_butts`, `plastic_bottles`, or `polystyrene` per dumpster. 
+
+Interestingly, there were also `sports_balls` included, which has a total median of `r median(pull(trash_wheel_data, sports_balls))` balls per dumpster. 
 
 The precipitation data was less interesting; there were a total of `r nrow(merged_precip20178_data)` observations corresponding to each month (Jan 2017 - Jul 2018) and its precipitate in inches, which is under the `monthly_precip` column. The `year` identifier was added and merged as it was not included in the original. Total measured precipitation for 2018 was `r sum(pull(precip2018_data, total))` inches, taking into account that the range of 2018 data was from Jan 2018 - Jul 2018.
+
+
+
 
 # Problem 2 - S&P 500 Index, Unemployment, and Presidency Polls Data
 Making a merged data between polls, unemployment, and S&P 500 Index data obtained from FiveThirtyEight, a website that focuses on graphs. Since structure is slightly different, we have to reorganize the table and use the year & month as the identifier during merging. 
 
-```{r import_538data}
+```{r 538data}
 
 # Importing polls data, splot the y/m/d date into individual columns. Also changed month from numeric to 
 # abbreviated form
 pols_month_data <- 
-  read_csv("./data/538/pols-month.csv") %>%                            # Reads the file
-  janitor::clean_names() %>%                                           # Cleans the column names
-  separate(col = mon, into = c("year", "month", "date"), "-") %>%      # Separates y/m/d column into its components
-  mutate(month = str_to_lower(month.abb[as.numeric(month)]),           # Change month from "1" to "jan", etc
-         prez = prez_gop - prez_dem,                                   # Added column for "presidency" by math (x-y)
-         prez = factor(prez, labels = c("dem", "gop", "gop"))) %>%     # Change new column to factor and relabeled
-  select(year, month, prez, everything(), -date, -prez_gop, -prez_dem) # Re-arrange columns and remove unwanteds
-  
+  read_csv("./data/538/pols-month.csv") %>%                              # Reads the file
+  janitor::clean_names() %>%                                             # Cleans the column names
+  separate(col = mon,                                                    # Separates y/m/d col into its components
+           into = c("year", "month", "date"), "-",                       # "-" is the separation point
+           convert = TRUE) %>%                                           # converts new columns to numeric
+  mutate(
+    month = str_to_lower(month.abb[as.numeric(month)]),                  # Change month from "1" to "jan", etc
+    prez = prez_gop - prez_dem,                                          # Added column for "presidency" by (x-y)
+    prez = factor(prez, labels = c("dem", "gop", "gop"))) %>%            # Change new column to factor and relabeled
+  select(year, month, prez, everything(), -date, -prez_gop, -prez_dem)   # Re-arrange columns and remove unwanteds
+
 
 # Loads S&P 500 data, separate m/d/y into individual columns and change month to abbreviated form.
 snp_data <- 
-  read_csv("./data/538/snp.csv") %>%                                # Reads the file
-  janitor::clean_names() %>%                                        # Cleans the column names
-  separate(col = date, into = c("month", "date", "year"), "/") %>%  # Separates y/m/d column into its components
-  mutate(month = as.numeric(month)) %>%                             # Turns the vector into numeric
-  select(year, month, close) %>%                                    # Re-arrangement of columns
-  arrange(year, month) %>%                                          # Turn into ascending order (to match other df)
-  mutate(month = str_to_lower(month.abb[month]))                    # Change month from "1" to "jan", etc
+  read_csv("./data/538/snp.csv") %>%                  # Reads the file
+  janitor::clean_names() %>%                          # Cleans the column names
+  separate(col = date,                                # Separates y/m/d column into its components
+           into = c("month", "date", "year"), "/",    # "/" is the point of separation
+           convert = TRUE) %>%                        # converts new columns to numeric
+  select(year, month, close) %>%                      # Re-arrangement of columns
+  arrange(year, month) %>%                            # Turn into ascending order (to match other df)
+  mutate(month = str_to_lower(month.abb[month]))      # Change month from "1" to "jan", etc
 
 
 # Importing unemployment data and then turn it from wide to long format.
 unemployment_data <- 
-  read_csv("./data/538/unemployment.csv") %>%                       # Reads the file
-  janitor::clean_names() %>%                                        # Cleans the column names
+  read_csv("./data/538/unemployment.csv") %>%     # Reads the file
+  janitor::clean_names() %>%                      # Cleans the column names
   pivot_longer(
-    jan:dec,                                                        # Turns into longform by "merging" month columns
-    names_to = "month",                                             # labels "month" to new column
-    values_to = "unemp_count")                                      # labels for column containing values
+    jan:dec,                                      # Turns into longform by "merging" month columns
+    names_to = "month",                           # labels "month" to new column
+    values_to = "unemp_count")                    # labels for column containing values
 
 
 # Merging the above dataframes by using pols_month_data as the reference.
 merged_538_data <-
-  left_join(pols_month_data, snp_data, by = c("year", "month")) %>% # merged snp into pols_month data
-  mutate(year = as.numeric(year)) %>%                               # turns year into numeric vector from char
-  left_join(unemployment_data, by = c("year", "month")) %>%         # merged unemp to the pols+S&P data
-  rename(snp_close = close)                                         # renames the close column to specify for S&P
+  left_join(pols_month_data, snp_data, by = c("year", "month")) %>%   # merged snp into pols_month data
+  mutate(year = as.numeric(year)) %>%                                 # turns year into numeric vector from char
+  left_join(unemployment_data, by = c("year", "month")) %>%           # merged unemp to the pols+S&P data
+  rename(snp_close = close)                                           # renames the close column to specify for S&P
 
 ```
 
+The `pols_month_data` dataset were modified to contain `prez` column that signifies which political party the presidency was under. This was obtained by subtracting `prez_dem` from `prez_gop` as they were coded as numerics (`0, 1, 2`). The resulting difference then is turned into factors and changed to `dem`/`gop`. The year ranges from Jan 1947 - Jun 2015. They also contain the number of democratic/GOP governors/senators during the specified dates. 
 
-Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables).
+S&P 500 dataset is named `snp_data` and contains the `year`, `month`, and `close` (index value on market close). Data ranges from Jan 1950 - Jul 2015. 
+
+The `unemployment_data` is interesting as it was originally in wide form and was converted into long form. The data ranges from Jan 1948 - Jun 2015. Since the original dataset doesn't have values from 07/2015 - 12/2015, the dataframe places `NA` for their values. 
+
+The final `merged_538_data` was formed using `left_join()` by first merging `snp_data` dataset into `pols_month_data`. Then, `unemployment_data` is merged into the resulting dataframe, which has `r ncol(merged_538_data)` columns x `r nrow(merged_538_data)` rows. The columns contain ***
+
+Since our reference dataset, `pols_month_data`, ranges from Jan 1947 - Jun 2015, the `NA` values from `unemployment_data` were not included as well as `snp_data`'s datapoint on Jul 2015. However, new `NA` values were formed in both `unemployment_data` and `snp_data` since our reference ranges from Jan 1947 - Jun 2015. 
+
+
 
 
 # Problem 3 - Baby Names Data Processing
@@ -138,23 +165,29 @@ Upon skimming the original `.csv` dataset, various issues with the syntax of the
   * ASIAN AND PACIFIC ISLANDER vs. ASIAN AND PACI
   * BLACK NON HISPANIC vs. BLACK NON HISP
   * WHITE NON HISPANIC vs. WHITE NON HISP
-* Case structure of the names changed between 2012 - 2013 from "UPPERCASE" to "Name"
+* Case structure of the names changed beginning of 2013 from "UPPERCASE" to "Name"
 * Many duplicated rows were spotted
 
-```{r baby_data_cleanup}
+```{r babynames_data}
 
 # Cleaning up the baby_names dataset
 baby_names_data <-
   read_csv("./data/baby_names/Popular_Baby_Names.csv") %>% 
-  janitor::clean_names() %>% 
-  mutate(childs_first_name = str_to_lower(childs_first_name),          # Changes specified columns to all lowercase
+  janitor::clean_names() %>%                                    # Changes column names to lowercase
+  mutate(childs_first_name = str_to_lower(childs_first_name),   # Changes specified columns to all lowercase
          ethnicity = str_to_lower(ethnicity),
          gender = str_to_lower(gender)) %>% 
-  distinct(year_of_birth, gender, ethnicity, childs_first_name, count, rank, .keep_all = TRUE) %>%
-  mutate(
+  distinct(year_of_birth,                                       # Parses df to remove any "duplicates" that
+           gender,                                              # matches all the variables
+           ethnicity, 
+           childs_first_name, 
+           count, 
+           rank, 
+           .keep_all = TRUE) %>%                                # Makes sure unlisted columns are included
+  mutate(                                                       # Replaces the short-hand with complete description
     ethnicity = str_replace(ethnicity, 
-                            "asian and paci(?!fic islander)",
-                            "asian and pacific islander"),
+                            "asian and paci(?!fic islander)",   # (?!characters) excludes
+                            "asian and pacific islander"),       
     ethnicity = str_replace(ethnicity,
                             "black non hisp(?!anic)",
                             "black non hispanic"),
@@ -176,7 +209,8 @@ Now that the dataset is cleaned and tidied, we will pull 3 data subsets:
 
 olivia_fem_rank_annual <- 
   baby_names_data %>% 
-  filter(childs_first_name == "olivia", gender == "female") %>% 
+  filter(childs_first_name == "olivia", 
+         gender == "female") %>% 
   select(-gender, -childs_first_name, -count) %>% 
   pivot_wider(names_from = year_of_birth,
               values_from = rank) %>% 
@@ -185,20 +219,21 @@ olivia_fem_rank_annual <-
 
 male_rank1_annual <- 
   baby_names_data %>% 
-  filter(rank == 1, gender == "male") %>% 
+  filter(rank == 1, 
+         gender == "male") %>% 
   select(-gender, -rank, -count) %>% 
   pivot_wider(names_from = year_of_birth,
               values_from = childs_first_name) %>% 
   select(ethnicity, "2011", "2012", "2013", "2014", "2015", "2016")
 
 
-top100_whitemale_2016 <- 
-  baby_names_data %>% 
+
+baby_names_data %>% 
   filter(year_of_birth == 2016, 
          gender == "male", 
          ethnicity == "white non hispanic") %>%
-  ggplot(aes(x = rank, y = count, color = childs_first_name)) +
-  geom_point(aes(size = count), alpha = 0.3) +
+  ggplot(aes(x = rank, y = count)) +
+  geom_point(aes(size = count), alpha = 0.15) +
   theme(legend.position = "none") +
   labs(title = "Top 100 Real Name Counts",
        subtitle = "for White, non-Hispanic Males Born in 2016",
@@ -207,9 +242,6 @@ top100_whitemale_2016 <-
   theme(plot.title = element_text(hjust = 0.5, size = 18),
         plot.subtitle = element_text(hjust = 0.5, size = 8))
 
-top100_whitemale_2016
-  
-  
 ```
 
 
