@@ -18,7 +18,7 @@ R Markdown document for P8105 homework 2. Code chunk below shows that we are loa
 ```{r package_load}
 
 # Loads the necessary packages
-Packages <- c("tidyverse", "dplyr", "readxl")
+Packages <- c("tidyverse", "dplyr", "readxl", "knitr")
 invisible(lapply(Packages, library, character.only = TRUE))
 
 ```
@@ -78,7 +78,7 @@ merged_precip1718_data <-
 
 ```
 
-Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website and while it's not necessary to include the It contains a total of `r ncol(trash_wheel_data)` variables (categories, including dumpster #) containing `r nrow(trash_wheel_data)` observations each. Identifying variables are `dumpster`, `year`, `month`, and `date`. We also have key variables that lists the total amount of variables per dumpster collected at date `x`. Examples of particularly key variables included are:
+Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website. It contains a total of `r ncol(trash_wheel_data)` variables (categories, including dumpster #) containing `r nrow(trash_wheel_data)` observations each. Identifying variables are `dumpster`, `year`, `month`, and `date`. We also have key variables that lists the total amount of variables per dumpster collected at date `x`. Examples are:
 
 * The trash `weight` (in tons)
 * Trash `volume_cubic_yards` (in cubic yards) 
@@ -86,7 +86,7 @@ Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website
 
 Interestingly, there were also `sports_balls` included, which has a total median of `r median(pull(trash_wheel_data, sports_balls))` balls per dumpster. 
 
-The precipitation data was less interesting; there were a total of `r nrow(merged_precip20178_data)` observations corresponding to each month (Jan 2017 - Jul 2018) and its precipitate in inches, which is under the `monthly_precip` column. The `year` identifier was added and merged as it was not included in the original. Total measured precipitation for 2018 was `r sum(pull(precip2018_data, total))` inches, taking into account that the range of 2018 data was from Jan 2018 - Jul 2018.
+The precipitation data was less interesting; there were a total of `r nrow(merged_precip1718_data)` observations corresponding to each month (Jan 2017 - Jul 2018) and its precipitate in inches, which is under the `monthly_precip` column. The `year` identifier was added and merged as it was not included in the original. Total measured precipitation for 2018 was `r sum(pull(precip2018_data, total))` inches, taking into account that the range of 2018 data was from Jan 2018 - Jul 2018.
 
 
 
@@ -96,7 +96,7 @@ Making a merged data between polls, unemployment, and S&P 500 Index data obtaine
 
 ```{r 538data}
 
-# Importing polls data, splot the y/m/d date into individual columns. Also changed month from numeric to 
+# Importing polls data, split the y/m/d date into individual columns. Also changed month from numeric to 
 # abbreviated form
 pols_month_data <- 
   read_csv("./data/538/pols-month.csv") %>%                              # Reads the file
@@ -136,21 +136,27 @@ unemployment_data <-
 # Merging the above dataframes by using pols_month_data as the reference.
 merged_538_data <-
   left_join(pols_month_data, snp_data, by = c("year", "month")) %>%   # merged snp into pols_month data
-  mutate(year = as.numeric(year)) %>%                                 # turns year into numeric vector from char
   left_join(unemployment_data, by = c("year", "month")) %>%           # merged unemp to the pols+S&P data
   rename(snp_close = close)                                           # renames the close column to specify for S&P
 
 ```
 
-The `pols_month_data` dataset were modified to contain `prez` column that signifies which political party the presidency was under. This was obtained by subtracting `prez_dem` from `prez_gop` as they were coded as numerics (`0, 1, 2`). The resulting difference then is turned into factors and changed to `dem`/`gop`. The year ranges from Jan 1947 - Jun 2015. They also contain the number of democratic/GOP governors/senators during the specified dates. 
+The cleaned `pols_month_data` dataset is a `r nrow(pols_month_data)` x `r ncol(pols_month_data)` tibble (column x row). Source was modified to contain `prez` column that signifies which political party the presidency was under. The data ranges from Jan 1947 - Jun 2015. They also contain the number of democratic/GOP governors/senators/representative during the specified dates. 
 
-S&P 500 dataset is named `snp_data` and contains the `year`, `month`, and `close` (index value on market close). Data ranges from Jan 1950 - Jul 2015. 
+Cleaned S&P 500 dataset is named `snp_data`. It is `r nrow(snp_data)` x `r ncol(snp_data)` and has variables `year`, `month`, and `close` (index value on market close). Data ranges from Jan 1950 - Jul 2015. 
 
-The `unemployment_data` is interesting as it was originally in wide form and was converted into long form. The data ranges from Jan 1948 - Jun 2015. Since the original dataset doesn't have values from 07/2015 - 12/2015, the dataframe places `NA` for their values. 
+The cleaned `unemployment_data` data is a `r nrow(unemployment_data)` x `r ncol(unemployment_data)` tibble and ranges from Jan 1948 - Jun 2015. Since the original dataset doesn't have values from 07/2015 - 12/2015, the dataframe places `NA` for their values when converting to long form. 
 
-The final `merged_538_data` was formed using `left_join()` by first merging `snp_data` dataset into `pols_month_data`. Then, `unemployment_data` is merged into the resulting dataframe, which has `r ncol(merged_538_data)` columns x `r nrow(merged_538_data)` rows. The columns contain ***
+The final `merged_538_data` was formed using `left_join()` by first merging `snp_data` dataset into `pols_month_data`. Then, `unemployment_data` is merged into the resulting dataframe, which is a `r nrow(merged_538_data)` x `r ncol(merged_538_data)` tibble. Key variables from the 3 datasets:
 
-Since our reference dataset, `pols_month_data`, ranges from Jan 1947 - Jun 2015, the `NA` values from `unemployment_data` were not included as well as `snp_data`'s datapoint on Jul 2015. However, new `NA` values were formed in both `unemployment_data` and `snp_data` since our reference ranges from Jan 1947 - Jun 2015. 
+* `year`        : "Identifier". Specifies the year of the event
+* `month`       : Specifies the month of the event
+* `prez`
+* `snp_close`
+* `unemp_count`
+
+
+Since our reference dataset, `pols_month_data`, ranges from Jan 1947 - Jun 2015, the `NA` values from `unemployment_data` were not included as well as `snp_data`'s datapoint on Jul 2015. However, new `NA` values were formed under `unemployment_data` and `snp_data` column since our reference ranges from Jan 1947 - Jun 2015. 
 
 
 
@@ -186,8 +192,8 @@ baby_names_data <-
            .keep_all = TRUE) %>%                                # Makes sure unlisted columns are included
   mutate(                                                       # Replaces the short-hand with complete description
     ethnicity = str_replace(ethnicity, 
-                            "asian and paci(?!fic islander)",   # (?!characters) excludes
-                            "asian and pacific islander"),       
+                            "asian and paci(?!fic islander)",   # (?!characters) prevents substitute of the pattern
+                            "asian and pacific islander"),      # that contains the specified character
     ethnicity = str_replace(ethnicity,
                             "black non hisp(?!anic)",
                             "black non hispanic"),
@@ -198,42 +204,54 @@ baby_names_data <-
 ```
 
 ## Obtaining useful information from cleaned baby dataset
-Now that the dataset is cleaned and tidied, we will pull 3 data subsets: 
+Now that the dataset is cleaned and tidied, we can pull 3 data subsets of interest and make a table out of it: 
 
-* Ranking changes for Olivia (female) over time by ethnicity
-* Names for the male's 1st rank each year by ethnicity
-* Graph of the counts from each rank of white non-hispanic males' top 100 born in 2016
+#### Changes in Ranking for the female name "Olivia" Over Time by Ethnicity
 
-```{r baby_data_processing}
+```{r olivia_rank, results = 'asis'}
 
-
-olivia_fem_rank_annual <- 
-  baby_names_data %>% 
-  filter(childs_first_name == "olivia", 
+# Making tibble for the ranking of "Olivia" over the years separated by ethnicity. Prints it out using kable()
+baby_names_data %>% 
+  filter(childs_first_name == "olivia",                                  # Filters the data by name & gender
          gender == "female") %>% 
-  select(-gender, -childs_first_name, -count) %>% 
-  pivot_wider(names_from = year_of_birth,
-              values_from = rank) %>% 
-  select(ethnicity, "2011", "2012", "2013", "2014", "2015", "2016")
+  select(-gender, -childs_first_name, -count) %>%                        # Removes unneeded variables
+  mutate(ethnicity = str_to_title(ethnicity)) %>%                        # Capitalize ethnicity variables for table
+  rename(Ethnicity = ethnicity) %>%                                      # Capitalize "Ethnicity" for table
+  pivot_wider(names_from = year_of_birth,                                # Convert to wide form; columns = year,
+              values_from = rank) %>%                                    # rows =  ethnicity
+  select(Ethnicity, "2011", "2012", "2013", "2014", "2015", "2016") %>%  # Arrange in increasing year
+  kable(format = "markdown")                                             # Prints a pretty table in markdown
 
+```
 
-male_rank1_annual <- 
-  baby_names_data %>% 
-  filter(rank == 1, 
+#### Names for the male's 1st rank each year by ethnicity
+
+```{r rank1_male_names, results = 'asis'}
+
+baby_names_data %>% 
+  filter(rank == 1,                                                      # Filters by rank "1" and gender
          gender == "male") %>% 
-  select(-gender, -rank, -count) %>% 
-  pivot_wider(names_from = year_of_birth,
-              values_from = childs_first_name) %>% 
-  select(ethnicity, "2011", "2012", "2013", "2014", "2015", "2016")
+  select(-gender, -rank, -count) %>%                                     # Removes unneeded variables
+  mutate(ethnicity = str_to_title(ethnicity),                            # Capitalize ethnicity & names for table
+         childs_first_name = str_to_title(childs_first_name)) %>% 
+  rename(Ethnicity = ethnicity) %>%                                      # Capitalize "Ethnicity" for table 
+  pivot_wider(names_from = year_of_birth,                                # Convert to wide form; column = year,
+              values_from = childs_first_name) %>%                       # rows = ethnicity
+  select(Ethnicity, "2011", "2012", "2013", "2014", "2015", "2016") %>%  # Arrange to increasing year
+  kable(format = "markdown")                                             # Prints a pretty table in markdown
+
+```
 
 
+#### Graph of the counts from each rank of white non-hispanic males' top 100 born in 2016
 
+```{r scatterplot_top100_whitemale, fig.width = 10}
 baby_names_data %>% 
   filter(year_of_birth == 2016, 
          gender == "male", 
          ethnicity == "white non hispanic") %>%
   ggplot(aes(x = rank, y = count)) +
-  geom_point(aes(size = count), alpha = 0.15) +
+  geom_point(alpha = 0.15) +
   theme(legend.position = "none") +
   labs(title = "Top 100 Real Name Counts",
        subtitle = "for White, non-Hispanic Males Born in 2016",
@@ -245,5 +263,7 @@ baby_names_data %>%
 ```
 
 
+
+*** add comments on why black/white is better; also no aes(size = count)
 Finally, for male, white non-hispanic children born in 2016, produce a scatter plot showing the number of children with a name (y axis) against the rank in popularity of that name (x axis).
 
