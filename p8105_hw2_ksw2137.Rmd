@@ -1,7 +1,7 @@
 ---
 title: "P8105 Data Science I - Homework 2"
 author: "Kevin S.Wongsodirdjo   UNI: ksw2137"
-date: "9/24/2019"
+date: "10/1/2019"
 output: github_document
 ---
 
@@ -168,7 +168,7 @@ Since our reference dataset, `pols_month_data`, ranges from Jan 1947-Jun 2015, t
 We are using data from NYC Open on baby names' popularity and will create a table that shows "popularity ranking".
 
 ## Importing baby data & cleaning up
-Upon skimming the original `.csv` dataset, various issues with the syntax of the data. These issues, while not, "critical", needs to be cleaned up so we could work easily with the data. Issues are:
+Upon skimming the original `.csv` dataset, various issues with the syntax of the data were spotted. These issues, while not "critical", needs to be cleaned up so we could work easily with the data. Issues are:
 
 * Inconsistent categorization naming:
   * ASIAN AND PACIFIC ISLANDER vs. ASIAN AND PACI
@@ -184,7 +184,7 @@ baby_names_data <-
   read_csv("./data/baby_names/Popular_Baby_Names.csv") %>% 
   janitor::clean_names() %>%                                    # Changes column names to lowercase
   distinct(year_of_birth,                                       # Parses df to remove any "duplicates" that
-           gender,                                              # matches all the variables
+           gender,                                              # in the listed variables 
            ethnicity, 
            childs_first_name, 
            count, 
@@ -194,8 +194,8 @@ baby_names_data <-
          ethnicity = str_to_lower(ethnicity),
          gender = str_to_lower(gender), 
          ethnicity = str_replace(ethnicity,                     # Replaces the short-hand with complete description
-                            "asian and paci(?!fic islander)",   # (?!characters) prevents substitution of the pattern
-                            "asian and pacific islander"),      # that includes the specified character
+                            "asian and paci(?!fic islander)",   # (?!characters) = not followed by "characters"
+                            "asian and pacific islander"),      
          ethnicity = str_replace(ethnicity,
                             "black non hisp(?!anic)",
                             "black non hispanic"),
@@ -261,7 +261,7 @@ baby_names_data %>%
 The resulting table above now shows how the 1st-ranked name changes between 2011-2016. It is also separated by ethnicity.
 
 #### Graph of the counts from each rank of white non-hispanic males' top 100 born in 2016
-Finally, we produce a scatterplot that shows the difference in numbers between each of the top 100 white non-hispanic male names. 
+Finally, we produce a scatterplot that shows the difference in counted numbers between each of the top 100 white non-hispanic male names. 
 
 ```{r scatterplot_top100_whitemale, fig.width = 10}
 baby_names_data %>% 
@@ -280,4 +280,4 @@ baby_names_data %>%
 
 ```
 
-In making this plot, adding color identifiers were considered but was not used as there were too many variables that the color palette duplicates. Since the names should be unique, there must not be duplicates. As such, a single color was chosen instead of black to provide some contrast as well as `alpha =` to somewhat discern stacked datapoints.
+In making this plot, adding color identifiers were considered but was not used as there were too many variables, which caused color duplicates. Since the names should be unique, there must not be duplicates. A single color was chosen instead to provide some contrast as well as `alpha =` to somewhat discern stacked datapoints.
