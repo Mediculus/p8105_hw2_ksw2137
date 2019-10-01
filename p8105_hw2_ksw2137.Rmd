@@ -11,9 +11,8 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE
 
 
 
-
 # Introduction
-R Markdown document for P8105 homework 2. Code chunk below shows that we are loading the required packages in order to manipulate the imported data.
+R Markdown document for P8105 homework 2. Code chunk below shows that we are loading the required packages in order to manipulate the imported data/table.
 
 ```{r package_load}
 
@@ -22,7 +21,6 @@ Packages <- c("tidyverse", "dplyr", "readxl", "knitr")
 invisible(lapply(Packages, library, character.only = TRUE))
 
 ```
-
 
 
 
@@ -39,7 +37,7 @@ trash_wheel_data <-
   janitor::clean_names() %>%                                  # renames column titles as x_y and lowercases
   drop_na(year) %>%                                           # drops any rows containing NA in "year" column
   mutate(
-    date = format(date, format = "%d"),                       # Changes the date format from %y%m%d to %d
+    date = format(date, format = "%d"),                       # Changes the date format from y/m/d to d
     sports_balls = round(sports_balls, 0),                    # Rounds the numbers in sports_balls to integers
     sports_balls = as.integer(sports_balls),                  # Converts type from double to integers
     month = str_to_lower(month)) %>%                          # Makes months to have lowercases
@@ -80,14 +78,13 @@ merged_precip1718_data <-
 
 Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website. It contains a total of `r ncol(trash_wheel_data)` variables (categories, including dumpster #) containing `r nrow(trash_wheel_data)` observations each. Identifying variables are `dumpster`, `year`, `month`, and `date`. We also have key variables that lists the total amount of variables per dumpster collected at date `x`. Examples are:
 
-* The trash `weight` (in tons)
+* The trash `weight_tons` (in tons)
 * Trash `volume_cubic_yards` (in cubic yards) 
 * Amount of `cigarette_butts`, `plastic_bottles`, or `polystyrene` per dumpster. 
 
 Interestingly, there were also `sports_balls` included, which has a total median of `r median(pull(trash_wheel_data, sports_balls))` balls per dumpster. 
 
 The precipitation data was less interesting; there were a total of `r nrow(merged_precip1718_data)` observations corresponding to each month (Jan 2017 - Jul 2018) and its precipitate in inches, which is under the `monthly_precip` column. The `year` identifier was added and merged as it was not included in the original. Total measured precipitation for 2018 was `r sum(pull(precip2018_data, total))` inches, taking into account that the range of 2018 data was from Jan 2018 - Jul 2018.
-
 
 
 
@@ -130,7 +127,7 @@ unemployment_data <-
   pivot_longer(
     jan:dec,                                      # Turns into longform by "merging" month columns
     names_to = "month",                           # labels "month" to new column
-    values_to = "unemp_count")                    # labels for column containing values
+    values_to = "unemp_rate")                     # labels for column containing values
 
 
 # Merging the above dataframes by using pols_month_data as the reference.
@@ -141,7 +138,7 @@ merged_538_data <-
 
 ```
 
-The cleaned `pols_month_data` dataset is a `r nrow(pols_month_data)` x `r ncol(pols_month_data)` tibble (column x row). Source was modified to contain `prez` column that signifies which political party the presidency was under. The data ranges from Jan 1947 - Jun 2015. They also contain the number of democratic/GOP governors/senators/representative during the specified dates. 
+The cleaned `pols_month_data` dataset is a `r nrow(pols_month_data)` x `r ncol(pols_month_data)` tibble (row x column). Source was modified to contain `prez` column that signifies which political party the presidency was under. The data ranges from Jan 1947 - Jun 2015. They also contain the number of democratic/GOP governors/senators/representative during the specified dates. 
 
 Cleaned S&P 500 dataset is named `snp_data`. It is `r nrow(snp_data)` x `r ncol(snp_data)` and has variables `year`, `month`, and `close` (index value on market close). Data ranges from Jan 1950 - Jul 2015. 
 
@@ -149,15 +146,14 @@ The cleaned `unemployment_data` data is a `r nrow(unemployment_data)` x `r ncol(
 
 The final `merged_538_data` was formed using `left_join()` by first merging `snp_data` dataset into `pols_month_data`. Then, `unemployment_data` is merged into the resulting dataframe, which is a `r nrow(merged_538_data)` x `r ncol(merged_538_data)` tibble. Key variables from the 3 datasets:
 
-* `year`        : "Identifier". Specifies the year of the event
-* `month`       : Specifies the month of the event
-* `prez`
-* `snp_close`
-* `unemp_count`
+* `year`        : "Identifier"; specifies the year of the event
+* `month`       : "Identifier"; specifies the month of the event
+* `prez`        : Indicates which party the president leans to
+* `snp_close`   : S&P 500 index value at market closing.
+* `unemp_rate`  : Percentage of unemployment (unemployment rate)
 
 
-Since our reference dataset, `pols_month_data`, ranges from Jan 1947 - Jun 2015, the `NA` values from `unemployment_data` were not included as well as `snp_data`'s datapoint on Jul 2015. However, new `NA` values were formed under `unemployment_data` and `snp_data` column since our reference ranges from Jan 1947 - Jun 2015. 
-
+Since our reference dataset, `pols_month_data`, ranges from Jan 1947 - Jun 2015, the `NA` values from `unemployment_data` as well as `snp_data`'s datapoint on Jul 2015 were not included. However, new `NA` values were formed under `unemployment_data` and `snp_data` column since our reference starts from `year` 1947 while `unemployment_data` starts at 1948 and `snp_data` starts at 1950.
 
 
 
@@ -192,8 +188,8 @@ baby_names_data <-
            .keep_all = TRUE) %>%                                # Makes sure unlisted columns are included
   mutate(                                                       # Replaces the short-hand with complete description
     ethnicity = str_replace(ethnicity, 
-                            "asian and paci(?!fic islander)",   # (?!characters) prevents substitute of the pattern
-                            "asian and pacific islander"),      # that contains the specified character
+                            "asian and paci(?!fic islander)",   # (?!characters) prevents substitution of the pattern
+                            "asian and pacific islander"),      # that includes the specified character
     ethnicity = str_replace(ethnicity,
                             "black non hisp(?!anic)",
                             "black non hispanic"),
@@ -203,10 +199,20 @@ baby_names_data <-
                                   
 ```
 
+While cleaning up, a peculiarity in the # of observations was noticed. When `distinct()` did not include `count` and `rank`, `baby_names_data` has 12180 observations. However, when `distinct()` includes `count` and `rank`, it turns into 12181 observations. Using `janitor::get_dupes()`, we get: 
+
+```{r dupes, echo = FALSE} 
+
+janitor::get_dupes(baby_names_data, year_of_birth, gender, ethnicity, childs_first_name)
+
+```
+I am not sure what to make of this but will assume unique people for now...
+
 ## Obtaining useful information from cleaned baby dataset
 Now that the dataset is cleaned and tidied, we can pull 3 data subsets of interest and make a table out of it: 
 
 #### Changes in Ranking for the female name "Olivia" Over Time by Ethnicity
+Since the variables and column names were in lowercase, we need to modify them first. After that, we need to change it to wide form and print the table using `kable()`. 
 
 ```{r olivia_rank, results = 'asis'}
 
@@ -224,7 +230,10 @@ baby_names_data %>%
 
 ```
 
+The resulting table above separate the "Olivia"s by ethnicity. This way, we can see how its ranking fluctuates from 2011-2016. 
+
 #### Names for the male's 1st rank each year by ethnicity
+Similarly, we do the same general process as above to find the 1st ranked name for males. 
 
 ```{r rank1_male_names, results = 'asis'}
 
@@ -242,28 +251,25 @@ baby_names_data %>%
 
 ```
 
+The resulting table above now shows how the 1st-ranked name changes between 2011 - 2016. It is also separated by ethnicity.
 
 #### Graph of the counts from each rank of white non-hispanic males' top 100 born in 2016
+Finally, we produce a scatterplot that shows the difference in numbers between each of the top 100 white non-hispanic male names. 
 
 ```{r scatterplot_top100_whitemale, fig.width = 10}
 baby_names_data %>% 
-  filter(year_of_birth == 2016, 
+  filter(year_of_birth == 2016,                                   # Filter by the criteria
          gender == "male", 
          ethnicity == "white non hispanic") %>%
-  ggplot(aes(x = rank, y = count)) +
-  geom_point(alpha = 0.15) +
-  theme(legend.position = "none") +
-  labs(title = "Top 100 Real Name Counts",
+  ggplot(aes(x = rank, y = count)) +                              # Assigns x and y variable for the plot
+  geom_point(alpha = 0.2, colour = "blue4") +                     # Added an alpha to make overlaps visible, if any
+  labs(title = "Top 100 Real Name Counts",                        # Specifies title, subtitles, x, y -axes
        subtitle = "for White, non-Hispanic Males Born in 2016",
        x = "Ranking from 1-100",
        y = "Real Counts") +
-  theme(plot.title = element_text(hjust = 0.5, size = 18),
+  theme(plot.title = element_text(hjust = 0.5, size = 18),        # Adjusted sizing and alignment of title/subtitle
         plot.subtitle = element_text(hjust = 0.5, size = 8))
 
 ```
 
-
-
-*** add comments on why black/white is better; also no aes(size = count)
-Finally, for male, white non-hispanic children born in 2016, produce a scatter plot showing the number of children with a name (y axis) against the rank in popularity of that name (x axis).
-
+In making this plot, adding color identifiers were considered but was not used as there were too many variables that the color palette duplicates. Since the names should be unique, there must not be duplicates. As such, a single color was chosen instead of black to provide some contrast.
