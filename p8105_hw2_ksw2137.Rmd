@@ -48,6 +48,8 @@ trash_wheel_data <-
     month = str_to_lower(month)) %>%                          # Makes months to have lowercases
   select(dumpster, year, month, everything())                 # Re-arranges the column to be "tidier"
 
+sportball2017 <- trash_wheel_data %>%                         # Isolating 2017 data for sports balls
+  filter(year == "2017") 
 
 
 
@@ -87,7 +89,7 @@ Data from Mr. Trash Wheel was obtained from Healthy Harbor Water Wheel's website
 * Trash `volume_cubic_yards` (in cubic yards) 
 * Amount of `cigarette_butts`, `plastic_bottles`, or `polystyrene` per dumpster. 
 
-Interestingly, there were also `sports_balls` included, which has a total median of `r median(pull(trash_wheel_data, sports_balls))` balls per dumpster. 
+Interestingly, there were also `sports_balls` included, which has a total median of `r median(pull(sportball2017, sports_balls))` balls per dumpster. 
 
 **UPDATE 10/1/2019**: New datapoints for precipitation was added (sourcefile updated to 2019 version) and the range is now from Jan 2017-Dec 2018. 
 
